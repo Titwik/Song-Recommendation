@@ -129,19 +129,23 @@ def k_means(k, tensor_of_features):
     # normalize the tensor_of_features
     tensor_of_features = normalize(tensor_of_features)
 
-    # pick k centroids
-    #random.seed(142)
-    centroid_entries = set()
-    while len(centroid_entries) < (k):
-        centroid_entries.add(random.randint(0,len(tensor_of_features)-1))
-    
-    # maintain the order of the entries 
-    centroid_entries = list(centroid_entries)
-        
-    # find centroids
-    centroids = tc.zeros(k,tensor_of_features.size(1)) #.size(1) is the number of columns
-    for i, entry in enumerate(centroid_entries):
-        centroids[i] = tensor_of_features[entry]
+    # initialize tensor of centroids
+    centroids = tc.zeros([k, tensor_of_features.size(1)])
+
+    # implement k-means++
+    # choose a random data point as initial centroid
+    random.seed(142)
+    initial_centroid = tensor_of_features[random.randint(0, tensor_of_features.size(0)-1)]
+    centroids[0] = initial_centroid
+
+    # compute the distance of datapoints from the nearest centroid
+    for i in range(1,k):    
+
+        distances = tc.min(tc.cdist(tensor_of_features, centroids[:i]), dim=1)[0]
+        probabilities = (distances ** 2 / tc.sum(distances ** 2)).numpy()
+        new_centroid_index = np.random.choice(np.array(range(tensor_of_features.size(0))), p=probabilities)
+        new_centroid = tensor_of_features[new_centroid_index]
+        centroids[i] = new_centroid     
 
     # start the algorithm
     while True:
@@ -163,31 +167,61 @@ def k_means(k, tensor_of_features):
             return new_centroids, tensor_of_features, labels
         else:
             centroids = new_centroids
+        
+def plot_clusters(x_tens, y_tens, labels, k):
+    # Define a list of colors manually
+    color_list = ['blue', 'red', 'green', 'purple', 'orange', 'pink', 'yellow', 'brown', 'cyan', 'magenta']
+
+    # Ensure that the number of colors matches or exceeds the number of clusters
+    if k > len(color_list):
+        raise ValueError(f"Not enough colors defined for {k} clusters. Add more colors to the list.")
+    
+    # Plot each point with the corresponding color
+    for i in range(len(x_tens)):
+        cluster_label = labels[i].item()  # Convert tensor to a scalar
+        plt.scatter(x_tens[i], y_tens[i], color=color_list[cluster_label], marker='o', label=f'Cluster {cluster_label}')
+    
+    # Ensure only one label per cluster in the legend
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    plt.legend(by_label.values(), by_label.keys())
+
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+    plt.title('Scatter Plot of Clusters')
+
+# use elbow method to determine the number of clusters needed
+def  silhouette_method(data, centroids):
+    
+    # 
+    
+    pass
 
 
-example = sample_list(50, dataset)
-example_features = get_audio_features(example)
-result_cent, tens, labels =  k_means(6, example_features)
-x_tens = tens[:,0].numpy()
-y_tens = tens[:,1].numpy()
-x_cen = result_cent[:,0].numpy()
-y_cen = result_cent[:,1].numpy()
+if __name__ == "__main__":
+    k = 6
+    example = sample_list(1000, dataset)
+    example_features = get_audio_features(example)
+    result_cent, tens, labels =  k_means(k, example_features)
+    x_tens = tens[:,0].numpy()
+    y_tens = tens[:,1].numpy()
+    x_cen = result_cent[:,0].numpy()
+    y_cen = result_cent[:,1].numpy()
+    print(labels)
 
-print(labels)
-# Create the scatter plot
-plt.figure(figsize=(8, 6))
+    # Create the scatter plot
+    plt.figure(figsize=(8, 6))
 
-# Plot the data points
-plt.scatter(x_tens, y_tens, color='blue', marker='o', label='Data Points')
+    # Plot the data points
+    plot_clusters(x_tens, y_tens, labels, k)
 
-# Plot the centroids
-plt.scatter(x_cen, y_cen, color='red', marker='x', s=100, label='Centroids')
+    # Plot the centroids
+    plt.scatter(x_cen, y_cen, color='black', marker='x', s=100, label='Centroids')
 
-# Add labels and legend
-plt.xlabel('X-axis')
-plt.ylabel('Y-axis')
-plt.title('Scatter Plot of Data Points and Centroids')
-plt.show()
-
+    # Add labels and legend
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+    plt.title('Scatter Plot of Data Points and Centroids')
+    plt.show()
 
 
