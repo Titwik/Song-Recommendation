@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-
 # load the environment variables    
 load_dotenv()
 
@@ -72,13 +71,12 @@ def display_track_name(track_uri):
         print(f"An unexpected error occurred: {e}")
 
 # define a function to obtain the audio features of a list of tracks
-# Assuming `sp` is a Spotify API client instance
 def fetch_features_batch(sp, uri_batch):
     return sp.audio_features(uri_batch)
 
 def get_audio_features(track_uri_list, batch_size=100):
     num_tracks = len(track_uri_list)
-    features_tensor = tc.zeros(num_tracks, 2)
+    features_tensor = tc.zeros(num_tracks, 5)   # change the second dimension for the number of features
     
     with ThreadPoolExecutor() as executor:
         futures = []
@@ -94,9 +92,9 @@ def get_audio_features(track_uri_list, batch_size=100):
                     if all_features:
                         features_tensor[index, 0] = all_features['acousticness']
                         features_tensor[index, 1] = all_features['energy']
-                        #features_tensor[index, 2] = all_features['instrumentalness']
-                        #features_tensor[index, 3] = all_features['tempo']
-                        #features_tensor[index, 4] = all_features['loudness']
+                        features_tensor[index, 2] = all_features['instrumentalness']
+                        features_tensor[index, 3] = all_features['tempo']
+                        features_tensor[index, 4] = all_features['loudness']
 
     return features_tensor
 
@@ -134,7 +132,7 @@ def k_means(k, tensor_of_features):
 
     # implement k-means++
     # choose a random data point as initial centroid
-    random.seed(142)
+    #random.seed(142)
     initial_centroid = tensor_of_features[random.randint(0, tensor_of_features.size(0)-1)]
     centroids[0] = initial_centroid
 
@@ -168,7 +166,9 @@ def k_means(k, tensor_of_features):
         else:
             centroids = new_centroids
         
-def plot_clusters(x_tens, y_tens, labels, k):
+# plot clusters for visualization purposes. Only for 2 features
+def plot_clusters(x_tens, y_tens, labels, k): 
+
     # Define a list of colors manually
     color_list = ['blue', 'red', 'green', 'purple', 'orange', 'pink', 'yellow', 'brown', 'cyan', 'magenta']
 
@@ -180,48 +180,114 @@ def plot_clusters(x_tens, y_tens, labels, k):
     for i in range(len(x_tens)):
         cluster_label = labels[i].item()  # Convert tensor to a scalar
         plt.scatter(x_tens[i], y_tens[i], color=color_list[cluster_label], marker='o', label=f'Cluster {cluster_label}')
-    
-    # Ensure only one label per cluster in the legend
-    handles, labels = plt.gca().get_legend_handles_labels()
-    by_label = dict(zip(labels, handles))
-    plt.legend(by_label.values(), by_label.keys())
 
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
     plt.title('Scatter Plot of Clusters')
 
 # use elbow method to determine the number of clusters needed
-def  silhouette_method(data, centroids):
+def elbow_method(tensor_of_features,k_max):
+
+    # initialize WCSS values (within-cluster sum of squares)
+    WCSS = tc.zeros(k_max)
+
+    for k in range(1, k_max+1):
+
+        # run the k-means algorithm
+        centroids, tensor_of_features, labels = k_means(k, tensor_of_features)
+        total_WCSS = 0.0
+
+        for i,centroid in enumerate(centroids):
+            
+            # compute the WCSS
+            cluster_points = tensor_of_features[labels == i]
+            distances = tc.sum((cluster_points - centroid) ** 2, dim=1) # sum along rows of the tensor
+
+            # sum the distances and add to the WCSS tensor
+            total_WCSS += tc.sum(distances).item()
+
+        # add the value to the WCSS tensor    
+        WCSS[k-1] = total_WCSS
     
-    # 
-    
-    pass
-
-
-if __name__ == "__main__":
-    k = 6
-    example = sample_list(1000, dataset)
-    example_features = get_audio_features(example)
-    result_cent, tens, labels =  k_means(k, example_features)
-    x_tens = tens[:,0].numpy()
-    y_tens = tens[:,1].numpy()
-    x_cen = result_cent[:,0].numpy()
-    y_cen = result_cent[:,1].numpy()
-    print(labels)
-
-    # Create the scatter plot
-    plt.figure(figsize=(8, 6))
-
-    # Plot the data points
-    plot_clusters(x_tens, y_tens, labels, k)
-
-    # Plot the centroids
-    plt.scatter(x_cen, y_cen, color='black', marker='x', s=100, label='Centroids')
-
-    # Add labels and legend
-    plt.xlabel('X-axis')
-    plt.ylabel('Y-axis')
-    plt.title('Scatter Plot of Data Points and Centroids')
+    # plot the WCSS against k
+    plt.plot(np.array(range(1,k_max + 1)), WCSS.numpy(), 'bx-')
+    plt.title('WCSS against k-clusters')
+    plt.xlabel('k')
+    plt.ylabel('WCSS')
     plt.show()
 
+def silhouette_method(tensor_of_features, k_max):
 
+    average_silhouette_scores = []
+    
+    for k in range(3, k_max+1):
+
+        # initialize average intra-cluster distance, and 
+        # average inter-cluster distance
+        a = tc.zeros(tensor_of_features.size(0))
+        b = tc.zeros_like(a)
+
+        # implement the k-means algorithm
+        centroids, tensor_of_features, labels = k_means(k, tensor_of_features)
+        
+        # loop over the number of data points
+        for i in range(tensor_of_features.size(0)):
+
+            # find the average intra-cluster distance
+            cluster_label = labels[i].item()
+            cluster_points = tensor_of_features[labels == cluster_label]
+            distance_a = tc.norm(tensor_of_features[i] - cluster_points, dim=1)
+            a[i] = distance_a.mean()
+
+            # find the clusters that the data point is not in
+            other_labels = []
+            average_distance = []
+            for not_in in range(centroids.size(0)):
+                if not_in != cluster_label:
+                    other_labels.append(not_in)
+            
+            # find the distance to the nearest cluster 
+            for label in other_labels:
+                distance_b = tc.norm(tensor_of_features[i] - tensor_of_features[labels == label], dim=1)
+                average_distance.append(distance_b.mean())
+            b[i] = min(average_distance)
+        
+        s = (b - a) / tc.maximum(a, b)
+        average_silhouette_scores.append(s.mean().item())
+
+    # find the optimum number of clusters
+    optimal_k = average_silhouette_scores.index(max(average_silhouette_scores)) + 3 # account for starting at k=3
+    return optimal_k
+
+if __name__ == "__main__":
+    example = sample_list(1000, dataset)
+    example_features = get_audio_features(example)
+    example_features = normalize(example_features)
+    print(silhouette_method(example_features,10))
+    #elbow_method(example_features,10)
+    
+    
+    #k_list = list(range(5,6))
+    
+    #for k in k_list:
+    #    result_cent, labels =  k_means(k, example_features)
+    #    x_tens = example_features[:,0].numpy()
+    #    y_tens = example_features[:,1].numpy()
+    #    x_cen = result_cent[:,0].numpy()
+    #    y_cen = result_cent[:,1].numpy()
+    #    print(labels)
+
+        # Create the scatter plot
+    #    plt.figure(figsize=(8, 6))
+
+        # Plot the data points
+    #    plot_clusters(x_tens, y_tens, labels, k)
+
+        # Plot the centroids
+    #    plt.scatter(x_cen, y_cen, color='black', marker='x', s=100, label='Centroids')
+
+        # Add labels and legend
+    #    plt.xlabel('X-axis')
+    #    plt.ylabel('Y-axis')
+    #   plt.title('Scatter Plot of Data Points and Centroids')
+    #    plt.show()
