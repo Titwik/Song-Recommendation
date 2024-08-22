@@ -1,4 +1,5 @@
 import pandas as pd
+import time
 import json
 import numpy as np
 import os
@@ -70,31 +71,88 @@ def display_track_name(track_uri):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
-# define a function to obtain the audio features of a list of tracks
-def fetch_features_batch(sp, uri_batch):
-    return sp.audio_features(uri_batch)
+# define a function to get the audio features of a track using the API
+# MAKE A DIFF FILE FOR THIS!!!
+def API_features(track_uri_list, batch_size=100, output_file = "audio_features.json"):
 
-def get_audio_features(track_uri_list, batch_size=100):
+    # prepare to store audio features
+    all_features = []
+
+    # get the number of tracks to analyze
+    num_tracks = len(track_uri_list)
+    
+    # check what tracks already exist in the output file
+    try:
+        with open(output_file, 'r') as file: 
+            data = json.load(file)
+            existing_uris = {item['uri'] for item in data}
+            existing_features = data
+
+    except FileNotFoundError:
+        existing_uris = set()
+        existing_features = []
+
+    # find the new uri's that need song data
+    uris_to_fetch = [uri for uri in track_uri_list if uri not in existing_uris]
+    if len(uris_to_fetch) == 0:
+
+        #print('All songs in the list have been added to the local file!')
+        return
+
+    # process tracks in batches
+    for i in range(0, num_tracks, batch_size):
+
+        # Get the batch of track URIs
+        tracks_batch = uris_to_fetch[i:i + batch_size]
+
+        # Make the API call to get audio features
+        features = sp.audio_features(tracks=tracks_batch)
+
+        # Filter out None values (in case some tracks have no available features)
+        features = [f for f in features if f is not None]
+            
+        # Append the features to the list
+        all_features.extend(features)
+
+        # wait to avoid hitting the rate limit
+        time.sleep(10)
+
+    # Combine existing features with new features
+    all_features.extend(existing_features)
+        
+    # Save the collected audio features to a JSON file
+    with open(output_file, 'w') as f:
+        json.dump(all_features, f, indent=4)
+
+    #print(f"Saved {len(uris_to_fetch)} audio features to {output_file}")
+    
+# define a function to get the audio features stored locally
+# this allows faster reading of data + avoids hitting the rate limit
+def get_audio_features(track_uri_list, features_file = "audio_features.json"):
+    
+    # use the API_features function
+    API_features(track_uri_list)
+
+    with open(features_file, 'r') as file: 
+        features_json = json.load(file)
+
+    # initialize tensor to store song data
     num_tracks = len(track_uri_list)
     features_tensor = tc.zeros(num_tracks, 5)   # change the second dimension for the number of features
-    
-    with ThreadPoolExecutor() as executor:
-        futures = []
-        for i in range(0, num_tracks, batch_size):
-            uri_batch = track_uri_list[i:i + batch_size]
-            futures.append(executor.submit(fetch_features_batch, sp, uri_batch))
 
-        for future in as_completed(futures):
-            batch_features = future.result()
-            if batch_features:
-                for j, all_features in enumerate(batch_features):
-                    index = (futures.index(future) * batch_size) + j
-                    if all_features:
-                        features_tensor[index, 0] = all_features['acousticness']
-                        features_tensor[index, 1] = all_features['energy']
-                        features_tensor[index, 2] = all_features['instrumentalness']
-                        features_tensor[index, 3] = all_features['tempo']
-                        features_tensor[index, 4] = all_features['loudness']
+    # map the track_uri to an index
+    uri_to_index = {uri: index for index, uri in enumerate(track_uri_list)}
+
+    # extract the song information from the .json file
+    for item in features_json:
+        uri = item.get('uri')
+        if uri in uri_to_index:
+            index = uri_to_index[uri]
+            features_tensor[index, 0] = item.get("acousticness")
+            features_tensor[index, 1] = item.get('energy')
+            features_tensor[index, 2] = item.get('instrumentalness')
+            features_tensor[index, 3] = item.get('tempo')
+            features_tensor[index, 4] = item.get('loudness') 
 
     return features_tensor
 
@@ -260,11 +318,11 @@ def silhouette_method(tensor_of_features, k_max):
     return optimal_k
 
 if __name__ == "__main__":
-    example = sample_list(1000, dataset)
+    example = sample_list(8000, dataset)
     example_features = get_audio_features(example)
     example_features = normalize(example_features)
-    print(silhouette_method(example_features,10))
-    #elbow_method(example_features,10)
+    #print(silhouette_method(example_features,10))
+    elbow_method(example_features,10)
     
     
     #k_list = list(range(5,6))
