@@ -180,7 +180,7 @@ def normalize(tensor):
     return z_score
 
 # define the k-means clustering
-def k_means(k, tensor_of_features):
+def k_means(k, tensor_of_features): 
     
     # normalize the tensor_of_features
     tensor_of_features = normalize(tensor_of_features)
@@ -317,7 +317,7 @@ def silhouette_method(tensor_of_features, k_max):
     optimal_k = average_silhouette_scores.index(max(average_silhouette_scores)) + 3 # account for starting at k=3
     return optimal_k
 
-if __name__ == "__main__":
+if __name__ == "__main__":  
     example = sample_list(8000, dataset)
     example_features = get_audio_features(example)
     example_features = normalize(example_features)
