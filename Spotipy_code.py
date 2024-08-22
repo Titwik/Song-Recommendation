@@ -1,16 +1,11 @@
-import pandas as pd
 import time
 import json
-import numpy as np
 import os
-from flask import Flask, session, redirect, url_for, request
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-from spotipy.cache_handler import FlaskSessionCacheHandler
 from dotenv import load_dotenv
 import torch as tc
-import matplotlib.pyplot as plt
-import random
+
 
 
 # load the environment variables    
@@ -80,7 +75,6 @@ def display_track_name(track_uri):
         print(f"An unexpected error occurred: {e}")
 
 # define a function to get the audio features of a track using the API
-# MAKE A DIFF FILE FOR THIS!!!
 def API_features(track_uri_list, batch_size=100, output_file = "audio_features.json"):
 
     # prepare to store audio features
@@ -110,16 +104,16 @@ def API_features(track_uri_list, batch_size=100, output_file = "audio_features.j
     # process tracks in batches
     for i in range(0, num_tracks, batch_size):
 
-        # Get the batch of track URIs
+        # get the batch of track URIs
         tracks_batch = uris_to_fetch[i:i + batch_size]
 
-        # Make the API call to get audio features
+        # make the API call to get audio features
         features = sp.audio_features(tracks=tracks_batch)
 
-        # Filter out None values (in case some tracks have no available features)
+        # filter out None values (in case some tracks have no available features)
         features = [f for f in features if f is not None]
             
-        # Append the features to the list
+        # append the features to the list
         all_features.extend(features)
 
         # wait to avoid hitting the rate limit

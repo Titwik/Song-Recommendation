@@ -1,21 +1,20 @@
-import pandas as pd
 import time
-import json
 import numpy as np
-import os
 from flask import Flask, session, redirect, url_for, request
-import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-from spotipy.cache_handler import FlaskSessionCacheHandler
-from dotenv import load_dotenv
 import torch as tc
 import matplotlib.pyplot as plt
 import random
+import Spotipy_code # custom module
 
+# load the dataset
+dataset = '/home/titwik/Projects/Spotify Project/song_dataset/data/mpd.slice.0-999.json'
 
 # define a function to normalize the audio features
 def normalize(tensor):
-    
+    """
+    This function normalizes the tensor for further computation
+    """
+
     # use z-score normalization technique
     # compute the mean of the tensor along each column
     mean = tc.mean(tensor, dim=0)
@@ -30,6 +29,14 @@ def normalize(tensor):
 
 # define the k-means clustering
 def k_means(k, tensor_of_features): 
+
+    """
+    This function implements the k-means clustering algorithm to cluster songs with similar features together.
+
+    The number of clusters k must be specified, along with a Pytorch tensor containing the numerical data of song features. 
+
+    The function then uses k-means++ to initialize initial centroids, and the optimizes the location of each centroid to form clusters.
+    """
     
     # normalize the tensor_of_features
     tensor_of_features = normalize(tensor_of_features)
@@ -76,6 +83,11 @@ def k_means(k, tensor_of_features):
 # plot clusters for visualization purposes. Only for 2 features
 def plot_clusters(x_tens, y_tens, labels, k): 
 
+    """
+    This function can be used to visualize clusters in 2-dimensional space.
+    Note: Can only input a Pytorch tensor of features with 2-dimensions.
+    """
+
     # Define a list of colors manually
     color_list = ['blue', 'red', 'green', 'purple', 'orange', 'pink', 'yellow', 'brown', 'cyan', 'magenta']
 
@@ -94,6 +106,12 @@ def plot_clusters(x_tens, y_tens, labels, k):
 
 # use elbow method to determine the number of clusters needed
 def elbow_method(tensor_of_features,k_max):
+
+    """
+    This function uses the Elbow method to plot a graph of WCSS against the number of clusters.
+    This allows for determining the optimal number of clusters visually by looking for a 'bend' in the graph.
+    The bend indicates that there is negligible change inertia after k exceed k_optimum.
+    """
 
     # initialize WCSS values (within-cluster sum of squares)
     WCSS = tc.zeros(k_max)
@@ -123,7 +141,13 @@ def elbow_method(tensor_of_features,k_max):
     plt.ylabel('WCSS')
     plt.show()
 
+# use the silhouette method to determine optimal number of clusters
 def silhouette_method(tensor_of_features, k_max):
+
+    """
+    Another function to determine the optimal number of clusters for k-means. 
+    Computes the average silhouette scores of a tensor of features for varying k, and chooses the cluster k that has the largest average silhouette score.
+    """
 
     average_silhouette_scores = []
     
@@ -165,3 +189,73 @@ def silhouette_method(tensor_of_features, k_max):
     # find the optimum number of clusters
     optimal_k = average_silhouette_scores.index(max(average_silhouette_scores)) + 3 # account for starting at k=3
     return optimal_k
+
+# plot a spider plot to visualize how the data is spread
+def spider_plot(tensor_of_features):
+
+    # use the silhouette method and k_means to get clusters
+    # by running it 10 times and taking the mode for 7000 songs (as a start), 
+    # k = 4 seems to be the optimal number of clusters
+    k=4
+    centroids, tensor_of_features, labels = k_means(k, tensor_of_features)
+    clusters = []
+
+    # find the points in a cluster
+    for i in range(k):
+        cluster_points = tensor_of_features[labels == i]
+        clusters.append(cluster_points)
+
+    # list the features we are analyzing
+    features = ['acousticness', 'energy', 'instrumentalness', 'tempo', 'loudness']
+
+    # number of features we are analyzing
+    num_vars = len(features)
+
+    # compute the spacing of the spider plot for each feature
+    angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
+    angles.append(0.0) # close the circle of the spider plot
+    
+    # initialize radar plot
+    fig, ax = plt.subplots(figsize=(10, 6), subplot_kw=dict(polar=True))
+
+    # list the colors to use
+    colors = ['blue', 'red', 'green', 'purple']
+    labels = ['Cluster 1', 'Cluster 2', 'Cluster 3', 'Cluster 4']
+
+    # find the mean values of each feature in each cluster
+    for i, cluster in enumerate(clusters):
+
+        # compute the mean of each feature
+        mean_values = np.mean(cluster.numpy(), axis=0)
+        mean_values = np.concatenate((mean_values, [mean_values[0]]))  # Complete the loop
+
+        # generate the plot
+        ax.fill(angles, mean_values, color=colors[i], alpha=0.25, label=labels[i])
+        ax.plot(angles, mean_values, color=colors[i], linewidth=2)
+
+    ax.set_yticklabels([])
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(features)
+
+    plt.title('Prominent Features Across Clusters', size=20)
+    plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1))
+    plt.show()
+
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":  
+    example = Spotipy_code.sample_list(50, dataset)
+    example_features = Spotipy_code.get_audio_features(example)
+    #example_features = normalize(example_features)
+    
+    
+    
+    
+    
