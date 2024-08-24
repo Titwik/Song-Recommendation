@@ -1,3 +1,4 @@
+from tqdm import tqdm
 import time
 import json
 import os
@@ -5,8 +6,6 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 import torch as tc
-
-
 
 # load the environment variables    
 load_dotenv()
@@ -58,7 +57,62 @@ def sample_list(num_of_songs, dataset):
         sample_list.append(uri[i])
     return sample_list
 
-# define a function to display the track name and artist name from a track uri
+# use the API to get information about a list of songs
+def API_information(track_uri_list, input_file = dataset, output_file = "audio_information.json"):
+    
+    # load the input JSON file
+    with open(input_file, 'r') as f:
+        input_data = json.load(f)
+
+    # extract playlists
+    playlists = input_data['playlists']
+
+    # prepare to store audio features
+    all_features = []
+
+    # check what tracks already exist in the output file
+    try:
+        with open(output_file, 'r') as file: 
+            current_data = json.load(file)
+            existing_uris = {item['uri'] for item in current_data}
+            existing_features = current_data
+
+    except FileNotFoundError:
+        existing_uris = set()
+        existing_features = []
+
+    # find the new uri's that need song data
+    uris_to_fetch = [uri for uri in track_uri_list if uri not in existing_uris]
+    if len(uris_to_fetch) == 0:
+
+        print('All songs in the list have been added to the local file!')
+        return
+    
+    information = []
+
+    # process tracks in batches
+    batch_size = 100    
+    for playlist in playlists:
+        for track in playlist['tracks']:
+            if track['track_uri'] in uris_to_fetch:
+                
+                song_info = {
+                    'track_name': track['track_name'],
+                    'artist_name': track['artist_name'],
+                    'track_uri': track['track_uri']
+                    #'genres' : sp.artist(artist_id)['genres']                    
+                }
+
+                # ensure duplicates are filtered out
+                if not any(song['track_name'] == song_info['track_name'] and 
+                           song['artist_name'] == song_info['artist_name'] 
+                           for song in information):
+                    information.append(song_info)
+
+    
+
+    return information
+
 def display_track_name(track_uri):      
     try:
         
@@ -74,73 +128,20 @@ def display_track_name(track_uri):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
-# define a function to get the audio features of a track using the API
-def API_features(track_uri_list, batch_size=100, output_file = "audio_features.json"):
 
-    # prepare to store audio features
-    all_features = []
-
-    # get the number of tracks to analyze
-    num_tracks = len(track_uri_list)
-    
-    # check what tracks already exist in the output file
-    try:
-        with open(output_file, 'r') as file: 
-            data = json.load(file)
-            existing_uris = {item['uri'] for item in data}
-            existing_features = data
-
-    except FileNotFoundError:
-        existing_uris = set()
-        existing_features = []
-
-    # find the new uri's that need song data
-    uris_to_fetch = [uri for uri in track_uri_list if uri not in existing_uris]
-    if len(uris_to_fetch) == 0:
-
-        #print('All songs in the list have been added to the local file!')
-        return
-
-    # process tracks in batches
-    for i in range(0, num_tracks, batch_size):
-
-        # get the batch of track URIs
-        tracks_batch = uris_to_fetch[i:i + batch_size]
-
-        # make the API call to get audio features
-        features = sp.audio_features(tracks=tracks_batch)
-
-        # filter out None values (in case some tracks have no available features)
-        features = [f for f in features if f is not None]
-            
-        # append the features to the list
-        all_features.extend(features)
-
-        # wait to avoid hitting the rate limit
-        time.sleep(10)
-
-    # Combine existing features with new features
-    all_features.extend(existing_features)
-        
-    # Save the collected audio features to a JSON file
-    with open(output_file, 'w') as f:
-        json.dump(all_features, f, indent=4)
-
-    #print(f"Saved {len(uris_to_fetch)} audio features to {output_file}")
-    
 # define a function to get the audio features stored locally
 # this allows faster reading of data + avoids hitting the rate limit
 def get_audio_features(track_uri_list, features_file = "audio_features.json"):
     
-    # use the API_features function
-    API_features(track_uri_list)
+    # use the API_information function
+    API_information(track_uri_list)
 
     with open(features_file, 'r') as file: 
         features_json = json.load(file)
 
     # initialize tensor to store song data
     num_tracks = len(track_uri_list)
-    features_tensor = tc.zeros(num_tracks, 5)   # change the second dimension for the number of features
+    features_tensor = tc.zeros(num_tracks, 6)   # change the second dimension for the number of features
 
     # map the track_uri to an index
     uri_to_index = {uri: index for index, uri in enumerate(track_uri_list)}
@@ -153,7 +154,13 @@ def get_audio_features(track_uri_list, features_file = "audio_features.json"):
             features_tensor[index, 0] = item.get("acousticness")
             features_tensor[index, 1] = item.get('energy')
             features_tensor[index, 2] = item.get('instrumentalness')
-            features_tensor[index, 3] = item.get('tempo')
+            features_tensor[index, 3] = item.get('danceability')
             features_tensor[index, 4] = item.get('loudness') 
+            features_tensor[index, 5] = item.get('valence')
 
     return features_tensor
+
+if __name__ == "__main__":
+    sample = sample_list(1, dataset)
+    display_track_name(sample[0])
+    
