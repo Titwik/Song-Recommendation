@@ -1,10 +1,11 @@
-from tqdm import tqdm
-import time
+import pandas as pd
 import json
+import time
 import os
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
+import K_means_code
 import torch as tc
 
 # load the environment variables    
@@ -19,148 +20,212 @@ client_secret = os.getenv('client_secret')
 redirect_uri = os.getenv('redirect_uri')
 scope = "user-library-read"
 
-# intialize the spotify client
+# intialize the spotify client  
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
                                                client_secret=client_secret,
                                                redirect_uri=redirect_uri,
                                                scope=scope))
 
-# define a function to load unique songs from the dataset
-def track_uris(dataset):           
-     
-    # Load the JSON file
-    with open(dataset, 'r') as f:
-        data = json.load(f)
 
-    # Extract playlists
-    playlists = data['playlists']
+#----------------------------------------------------------------------------------------------------------------------------------
 
-    # Use a list to maintain order and a set for quick duplicate checking
-    track_uri_list = []
-    track_uri_set = set()
+# load the dataset 
+def song_data(input_file = "dataset.csv", output_file = "audio_information.json"):
 
-    # Loop through the tracks in each playlist 
-    for playlist in playlists:
-        for track in playlist['tracks']:
-            uri = track['track_uri']
-            if uri not in track_uri_set:
-                track_uri_list.append(uri)
-                track_uri_set.add(uri)
-    
-    return track_uri_list   
+    # load the dataset
+    df = pd.read_csv(input_file, low_memory=False)
 
-# define a function to get a sample list of song uri's for testing
-def sample_list(num_of_songs, dataset):
-    sample_list = []
-    uri = track_uris(dataset)
-    for i in range(num_of_songs):
-        sample_list.append(uri[i])
-    return sample_list
-
-# use the API to get information about a list of songs
-def API_information(track_uri_list, input_file = dataset, output_file = "audio_information.json"):
-    
-    # load the input JSON file
-    with open(input_file, 'r') as f:
-        input_data = json.load(f)
-
-    # extract playlists
-    playlists = input_data['playlists']
-
-    # prepare to store audio features
-    all_features = []
-
-    # check what tracks already exist in the output file
+    # add the information to a .json file
     try:
         with open(output_file, 'r') as file: 
             current_data = json.load(file)
-            existing_uris = {item['uri'] for item in current_data}
-            existing_features = current_data
+            #print('Data exists')
+            return current_data
 
     except FileNotFoundError:
-        existing_uris = set()
-        existing_features = []
+        json_content = []
 
-    # find the new uri's that need song data
-    uris_to_fetch = [uri for uri in track_uri_list if uri not in existing_uris]
-    if len(uris_to_fetch) == 0:
+    errors = 0
+    duplicates = set()
+    for i, row in df.iterrows():
 
-        print('All songs in the list have been added to the local file!')
-        return
-    
-    information = []
+        # check for duplicate songs
+        if row['track_id'] in duplicates:
+            print(f'Skipping song number {i} as it is a duplicate')
+            errors+=1
+            continue
+        else:
+            duplicates.add(row['track_id'])
 
-    # process tracks in batches
-    batch_size = 100    
-    for playlist in playlists:
-        for track in playlist['tracks']:
-            if track['track_uri'] in uris_to_fetch:
-                
-                song_info = {
-                    'track_name': track['track_name'],
-                    'artist_name': track['artist_name'],
-                    'track_uri': track['track_uri']
-                    #'genres' : sp.artist(artist_id)['genres']                    
+        try:
+
+            acousticness = float(row['acousticness'])
+            danceability = float(row['danceability'])
+            energy = float(row['energy'])
+            key = float(row['key'])
+            loudness = float(row['loudness'])
+            mode = float(row['mode'])
+            speechiness = float(row['speechiness'])
+            instrumentalness = float(row['instrumentalness'])
+            liveness = float(row['liveness'])
+            valence = float(row['valence'])
+            tempo = float(row['tempo'])
+
+            if (acousticness > 1 or
+                danceability > 1 or
+                valence > 1 or
+                energy > 1 or 
+                instrumentalness > 1 or
+                liveness > 1 or 
+                speechiness > 1):
+
+                print(f"Skipping song number {i} due to too large of a value in a field")
+                errors+=1
+                continue
+
+            else:       
+
+                track_info = {
+                    "track_name": row['track_name'],
+                    "track_id": row["track_id"],
+                    "artist_name": row["artist_name"],
+                    "danceability": danceability,
+                    "energy": energy,
+                    "key": key,
+                    "loudness": loudness,
+                    "mode": mode,
+                    "speechiness": speechiness,
+                    "acousticness": acousticness,
+                    "instrumentalness": instrumentalness,
+                    "liveness": liveness,
+                    "valence": valence,
+                    "tempo": tempo,
+                    "duration_ms": row['duration_ms'],
+                    "time_signature": row['time_signature']
                 }
-
-                # ensure duplicates are filtered out
-                if not any(song['track_name'] == song_info['track_name'] and 
-                           song['artist_name'] == song_info['artist_name'] 
-                           for song in information):
-                    information.append(song_info)
-
-    
-
-    return information
-
-def display_track_name(track_uri):      
-    try:
+                json_content.append(track_info)
         
-        # Fetch the track's information
-        track_info = sp.track(track_uri)
+        except ValueError:
+            print(f"Skipping song number {i} due to conversion error")
+            errors+=1
+            continue
 
-        # Extract and print the track name
-        track_name = track_info['name']
-        artist_name = track_info['artists'][0]['name']
-        print(f"Track Name: {track_name} - {artist_name}")
-    except spotipy.exceptions.SpotifyException as e:
-        print(f"Error: {e}")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+    # Write JSON data to a file
+    with open(output_file, 'w') as json_file:
+        json.dump(json_content, json_file, indent=4)
 
+    print(f"{130664 - errors-1} songs have been successfully written to {output_file}")
 
-# define a function to get the audio features stored locally
-# this allows faster reading of data + avoids hitting the rate limit
-def get_audio_features(track_uri_list, features_file = "audio_features.json"):
+    with open(output_file, 'r') as file: 
+        data = json.load(file)
+        return data
+
+# get the audio features
+def get_audio_features(num_tracks=130291, features_file = "audio_information.json"):
     
-    # use the API_information function
-    API_information(track_uri_list)
-
-    with open(features_file, 'r') as file: 
-        features_json = json.load(file)
-
+    features_json = song_data(output_file=features_file)
+    
     # initialize tensor to store song data
-    num_tracks = len(track_uri_list)
     features_tensor = tc.zeros(num_tracks, 6)   # change the second dimension for the number of features
 
-    # map the track_uri to an index
-    uri_to_index = {uri: index for index, uri in enumerate(track_uri_list)}
-
     # extract the song information from the .json file
-    for item in features_json:
-        uri = item.get('uri')
-        if uri in uri_to_index:
-            index = uri_to_index[uri]
-            features_tensor[index, 0] = item.get("acousticness")
-            features_tensor[index, 1] = item.get('energy')
-            features_tensor[index, 2] = item.get('instrumentalness')
-            features_tensor[index, 3] = item.get('danceability')
-            features_tensor[index, 4] = item.get('loudness') 
-            features_tensor[index, 5] = item.get('valence')
+    for index in range(num_tracks):
+        features = features_json[index]
+        features_tensor[index, 0] = features["acousticness"]
+        features_tensor[index, 1] = features['energy']
+        features_tensor[index, 2] = features['instrumentalness']
+        features_tensor[index, 3] = features['danceability']
+        features_tensor[index, 4] = features['loudness']
+        features_tensor[index, 5] = features['valence']
+
+        # if testing a sample size, use num_tracks to break the loop
+        if index == (num_tracks-1):
+            break
+    
+    # get rid of rows with nan values
+    nan_mask = ~tc.isnan(features_tensor).any(dim=1)
+    features_tensor = features_tensor[nan_mask]
 
     return features_tensor
 
+# use the API to get the genre of every artist in the dataset
+def get_genre(num_tracks=130291, song_dataset = "audio_information.json"):
+
+    try:
+        with open(song_dataset, 'r') as file: 
+            songs = json.load(file)
+
+    except FileNotFoundError:
+        print("Generating dataset...")
+        songs = song_data()
+        print('')
+
+    track_ids = [songs[i]["track_id"] for i in range(num_tracks)]
+
+    batch_size = 50
+    artist_ids = []
+
+    # Process track IDs in batches
+    for i in range(0, len(track_ids), batch_size):
+        batch = track_ids[i:i + batch_size]
+        track_data = sp.tracks(batch)   
+        time.sleep(5)
+
+        # Extract artist IDs from each track in the batch
+        for track in track_data['tracks']:
+            for artist in track['artists']:
+                artist_ids.append(artist['id'])
+                break       
+
+    genres = []
+
+    for i in range(0, len(artist_ids), batch_size):
+        batch = artist_ids[i:i+batch_size]
+        artist_info = sp.artists(batch)
+        time.sleep(5)
+        for artist in artist_info['artists']:
+            genres.append(artist['genres'])
+
+    # edit the dataset to have genres
+    for i in range(num_tracks):
+        song = songs[i]     
+        song['genre'] = genres[i]
+        #print(f"Genre done for song {i}")
+
+    with open(song_dataset, 'w') as json_file:
+        json.dump(songs, json_file, indent=4)       
+    
+    print(f"Genres added to {num_tracks} songs.")
+
+#-------------------------------------------------------------------------------------
+def delete_bad_songs(num_tracks=130291, song_dataset = "audio_information.json"):
+
+    with open(song_dataset, 'r') as file:   
+        songs = json.load(file)
+    
+    # Create a new list with songs that have genres
+    good_songs = [song for song in songs[:num_tracks] if len(song['genre']) > 0]
+    
+    # Calculate the number of deleted songs
+    deleted = num_tracks - len(good_songs)
+    
+    # Save the filtered dataset
+    with open(song_dataset, 'w') as json_file:
+        json.dump(good_songs, json_file, indent=4)
+    
+    print(f"Deleted {deleted} songs.")
+
+
+#def final_cleaning()
+
 if __name__ == "__main__":
-    sample = sample_list(1, dataset)
-    display_track_name(sample[0])
+    #song_data()
+    n = 20
+    get_genre(n)    
+    print('')
+    delete_bad_songs(n)
+    
+
+    
+
     

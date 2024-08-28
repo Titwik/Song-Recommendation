@@ -11,6 +11,7 @@ dataset = '/home/titwik/Projects/Spotify Project/song_dataset/data/mpd.slice.0-9
 
 # define a function to normalize the audio features
 def normalize(tensor):
+
     """
     This function normalizes the tensor for further computation
     """
@@ -21,6 +22,9 @@ def normalize(tensor):
 
     # compute the standard deviation of the tensor along each column
     st_dev = tc.std(tensor, dim=0)
+
+    # avoid division by 0
+    tc.where(st_dev == 0, tc.tensor(1.0), st_dev)
 
     # compute the z-score
     z_score = (tensor - mean)/st_dev
@@ -46,7 +50,7 @@ def k_means(k, tensor_of_features):
 
     # implement k-means++
     # choose a random data point as initial centroid
-    #random.seed(142)
+    random.seed(142)
     initial_centroid = tensor_of_features[random.randint(0, tensor_of_features.size(0)-1)]
     centroids[0] = initial_centroid
 
@@ -80,7 +84,7 @@ def k_means(k, tensor_of_features):
         else:
             centroids = new_centroids
         
-# plot clusters for visualization purposes. Only for 2 features
+# plot clusters for visualization purposes in the 2D plane. Only for 2 features
 def plot_clusters(x_tens, y_tens, labels, k): 
 
     """
@@ -191,13 +195,16 @@ def silhouette_method(tensor_of_features, k_max):
     return optimal_k
 
 # plot a spider plot to visualize how the data is spread
-def spider_plot(tensor_of_features):
+def spider_plot(k, tensor_of_features):
+
+    """
+    Generates a spider plot based on the features obtained from the features tensor
+    """
 
     # use the silhouette method and k_means to get clusters
     # by running it 10 times and taking the mode for 7000 songs (as a start), 
     # k = 4 seems to be the optimal number of clusters
-    k=4
-    centroids, tensor_of_features, labels = k_means(k, tensor_of_features)
+    _, tensor_of_features, labels = k_means(k, tensor_of_features)
     clusters = []
 
     # find the points in a cluster
@@ -206,7 +213,7 @@ def spider_plot(tensor_of_features):
         clusters.append(cluster_points)
 
     # list the features we are analyzing
-    features = ['acousticness', 'energy', 'instrumentalness', 'tempo', 'loudness']
+    features = ['acousticness', 'energy', 'instrumentalness', 'danceability', 'loudness', 'valence']
 
     # number of features we are analyzing
     num_vars = len(features)
@@ -219,10 +226,10 @@ def spider_plot(tensor_of_features):
     fig, ax = plt.subplots(figsize=(10, 6), subplot_kw=dict(polar=True))
 
     # list the colors to use
-    colors = ['blue', 'red', 'green', 'purple']
-    labels = ['Cluster 1', 'Cluster 2', 'Cluster 3', 'Cluster 4']
+    colors = ['blue', 'red', 'green', 'purple', 'orange', 'pink', 'yellow', 'brown', 'cyan', 'magenta']
+    #labels = ['Cluster 1', 'Cluster 2', 'Cluster 3', 'Cluster 4']
 
-    # find the mean values of each feature in each cluster
+    # find the mean  values of each feature in each cluster
     for i, cluster in enumerate(clusters):
 
         # compute the mean of each feature
@@ -230,7 +237,7 @@ def spider_plot(tensor_of_features):
         mean_values = np.concatenate((mean_values, [mean_values[0]]))  # Complete the loop
 
         # generate the plot
-        ax.fill(angles, mean_values, color=colors[i], alpha=0.25, label=labels[i])
+        ax.fill(angles, mean_values, color=colors[i], alpha=0.25)
         ax.plot(angles, mean_values, color=colors[i], linewidth=2)
 
     ax.set_yticklabels([])
@@ -238,23 +245,32 @@ def spider_plot(tensor_of_features):
     ax.set_xticklabels(features)
 
     plt.title('Prominent Features Across Clusters', size=20)
-    plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1))
+    #plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1))
     plt.show()
 
 
+    """ 
+    Cluster 1: 
+        - Highest features: Valence, Danceability, Energy, Loudness
+        - Lowest Features: Acousticness, Instrumentalness
 
+    Cluster 2: 
+        - Highest features: Acousticness, Instrumentalness, Danceability 
+        - Lowest Features: Energy, Valence
 
-
-
-
-
+    Cluster 3: 
+        - Highest features: Instrumentalness, Energy, Loudness
+        - Lowest Features: Acousticness, Valence, Danceability
+        
+    Cluster 4: 
+        - Highest features: Acousticness, Instrumentalness
+        - Lowest Features: Valence, Danceability, Energy, Loudness
+    """
 
 
 if __name__ == "__main__":  
-    example = Spotipy_code.sample_list(50, dataset)
-    example_features = Spotipy_code.get_audio_features(example)
-    #example_features = normalize(example_features)
-    
+    example_features = Spotipy_code.get_audio_features()
+    spider_plot(4, example_features)
     
     
     
