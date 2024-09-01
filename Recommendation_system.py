@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import difflib
 import spotipy
 import Spotipy_code
 import K_means_code
@@ -31,7 +32,7 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
 
     song_name =  input("What song do you like?\n")
     print('')
-    artist_name =   input("Who is the artist of the song you like?\n")
+    artist_name = input("Who is the artist of the song you like?\n")
     print('')
     print('Processing. Please wait...')
         
@@ -140,20 +141,31 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
                     genre = user_song_genres[j]
                     if genre in song['genre']:
                         potential_songs.append(song)
-
-            #print(f"Number of potential songs is {len(potential_songs)}")
             
-            if len(potential_songs)<5:
-                for i in range(5):
-                    recommendation_index = random.choice(indices_in_cluster)
-                    recommendation = song_data[recommendation_index]   
-                    potential_songs.append(recommendation)             
+            # if there are not enough songs to recommend, use difflib to find possible matches
+            if len(potential_songs) < 5:
+                for song in song_data:
+
+                    # break out of the loop when potential_songs has atleast 5 songs
+                    if len(potential_songs) >= 5:
+                        break
+
+                    for song_genre in song['genre']:
+                        for user_song_genre in user_song_genres:
+                            seq_match = difflib.SequenceMatcher(None, song_genre, user_song_genre)
+                            ratio = seq_match.ratio()
+
+                            if ratio > 0.5:
+                                if song not in potential_songs:
+                                    potential_songs.append(song)
+                                    
+                                    # stop further genre comparisons for this song to avoid duplicates          
+                                    break  
         
             print("#------------------------------------------------------------------------")
             print('Here are some songs you may like:')
             print('')
             for i in range(5):
-               #random.seed(234)
                 recommendation = random.choice(potential_songs)                
                 name = recommendation['track_name']
                 artist = recommendation['artist_name']
@@ -163,8 +175,6 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
             print("#------------------------------------------------------------------------")
             print('')
             
-
-#----------------------------------------------------------------------------------------------------------------------------------
         # delete the user-entered song from the dataset 
         del song_data[-1]
         with open(song_dataset, 'w') as json_file:
