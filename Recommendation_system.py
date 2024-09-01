@@ -1,14 +1,11 @@
-import pandas as pd
-import random
-import json
-import time
 import os
+import json
+import random
 import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-from dotenv import load_dotenv
-import K_means_code
-import torch as tc
 import Spotipy_code
+import K_means_code
+from dotenv import load_dotenv
+from spotipy.oauth2 import SpotifyOAuth
 
 # load the environment variables    
 load_dotenv()
@@ -30,11 +27,11 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
 
 #----------------------------------------------------------------------------------------------------------------------------------
 
-def recommend_songs():
+def recommend_songs(song_dataset = "no_bad_songs.json"):
 
-    song_name =  "Diving Bell" #input("What song do you like?\n")
+    song_name =  input("What song do you like?\n")
     print('')
-    artist_name = "Starset"# input("Who is the artist of the song you like?\n")
+    artist_name =   input("Who is the artist of the song you like?\n")
     print('')
     print('Processing. Please wait...')
         
@@ -85,27 +82,25 @@ def recommend_songs():
         genres = list(genres)
 
         track_info['genre'] = genres
-        song_data = Spotipy_code.song_data()
+        song_data = Spotipy_code.song_data(output_file=song_dataset)
         song_data.append(track_info)
-        with open("no_bad_songs.json", 'w') as json_file:
+
+        with open(song_dataset, 'w') as json_file:
             json.dump(song_data, json_file, indent=4)    
-            print("Song written to file\n")
+            #print("Song written to file\n")
             
-            
-        with open("no_bad_songs.json", 'r') as file:
+        with open(song_dataset, 'r') as file:
             song_data = json.load(file)
 
         num_tracks = len(song_data)
 
-        tensor_of_features = Spotipy_code.get_audio_features(num_tracks)
+        tensor_of_features = Spotipy_code.get_audio_features(num_tracks, song_dataset)
 
         _, tensor_of_features, labels = K_means_code.k_means(4, tensor_of_features)
 
-        print('Almost there...\n')
+        #print('Song clustering complete!')
+        print('Almost there...')
         print('')
-
-        # get points in the same cluster as input song
-        #cluster_points = tensor_of_features[labels == labels[-1]]
 
         # keep track of indices of songs in the cluster
         indices_in_cluster = []
@@ -115,30 +110,64 @@ def recommend_songs():
 
         # get songs with similar genres 
         user_song = song_data[-1]
-        #user_song_genres = user_song['genre']
+        user_song_genres = user_song['genre']
 
-        print(user_song)
+        # find songs with similar genres
+        # if the user's song doesn't have genres, pick 5 random songs from the cluster
+        if len(user_song_genres) == 0:
+            print("No genres found in the song inputted.")
+            print('Here are some songs you may like:')
+            print('')
 
-        #print("Here are some songs you may like:\n")
-        #for i in range(5):
-            #random.seed(234)
-            #recommendation_index = random.choice(indices_in_cluster)
-            #recommendation = song_data[recommendation_index]
-            
-            #print(f"Song {i+1}: \n {tensor_of_features[recommendation_index]}")
-            
-            
-            #name = recommendation['track_name']
-            #artist = recommendation['artist_name']
-            #print(f"{name} by {artist}")
-            #indices_in_cluster.remove(recommendation_index)
-
+            for i in range(5):
+                #random.seed(234)
+                recommendation_index = random.choice(indices_in_cluster)
+                recommendation = song_data[recommendation_index]                
+                name = recommendation['track_name']
+                artist = recommendation['artist_name']
+                print(f"{name} by {artist}")
+                indices_in_cluster.remove(recommendation_index)
         
+        else:
+            # find the number of genres associated with the track
+            no_of_genres = len(user_song_genres)
+            potential_songs = []
+
+            # search through the songs for all songs matching these genres
+            for i in range(num_tracks):
+                song = song_data[i]
+                for j in range(no_of_genres):
+                    genre = user_song_genres[j]
+                    if genre in song['genre']:
+                        potential_songs.append(song)
+
+            #print(f"Number of potential songs is {len(potential_songs)}")
+            
+            if len(potential_songs)<5:
+                for i in range(5):
+                    recommendation_index = random.choice(indices_in_cluster)
+                    recommendation = song_data[recommendation_index]   
+                    potential_songs.append(recommendation)             
+        
+            print("#------------------------------------------------------------------------")
+            print('Here are some songs you may like:')
+            print('')
+            for i in range(5):
+               #random.seed(234)
+                recommendation = random.choice(potential_songs)                
+                name = recommendation['track_name']
+                artist = recommendation['artist_name']
+                print(f"Track name: {name}")
+                print(f"Artist: {artist}")
+                print('')
+            print("#------------------------------------------------------------------------")
+            print('')
+            
 
 #----------------------------------------------------------------------------------------------------------------------------------
         # delete the user-entered song from the dataset 
         del song_data[-1]
-        with open("audio_information.json", 'w') as json_file:
+        with open(song_dataset, 'w') as json_file:
             json.dump(song_data, json_file, indent=4)    
             #print("Song removed from file\n")    
         
@@ -148,4 +177,4 @@ def recommend_songs():
 
 if __name__ == "__main__":
     recommend_songs()
-    
+        
