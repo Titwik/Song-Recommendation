@@ -1,3 +1,4 @@
+import time
 import os
 import json
 import random
@@ -30,10 +31,13 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
 
 def recommend_songs(song_dataset = "no_bad_songs.json"):
 
+    """Input a song and get a list of 5 song recommendations back, along with their spotify links"""
+
     song_name =  input("What song do you like?\n")
     print('')
     artist_name = input("Who is the artist of the song you like?\n")
     print('')
+    start = time.time()
     print('Processing. Please wait...')
         
     query = f"track:{song_name} artist:{artist_name}"
@@ -116,7 +120,7 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
         # find songs with similar genres
         # if the user's song doesn't have genres, pick 5 random songs from the cluster
         if len(user_song_genres) == 0:
-            print("No genres found in the song inputted.")
+            print("Unfortunately, this song does not have any genres associated with it.")
             print('Here are some songs you may like:')
             print('')
 
@@ -143,7 +147,8 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
                         potential_songs.append(song)
             
             # if there are not enough songs to recommend, use difflib to find possible matches
-            if len(potential_songs) < 5:
+            if (len(potential_songs) < 5 or
+                len(user_song_genres) < 2):
                 for song in song_data:
 
                     # break out of the loop when potential_songs has atleast 5 songs
@@ -169,11 +174,15 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
                 recommendation = random.choice(potential_songs)                
                 name = recommendation['track_name']
                 artist = recommendation['artist_name']
+                track_id = recommendation['track_id']
                 print(f"Track name: {name}")
                 print(f"Artist: {artist}")
+                print(f"Link to song: https://open.spotify.com/track/{track_id}")
                 print('')
             print("#------------------------------------------------------------------------")
             print('')
+            end = time.time()
+            print(f"{end - start} seconds")
             
         # delete the user-entered song from the dataset 
         del song_data[-1]
@@ -187,4 +196,5 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
 
 if __name__ == "__main__":
     recommend_songs()
+
         
