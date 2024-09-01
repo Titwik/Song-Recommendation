@@ -1,13 +1,11 @@
-from spotipy.exceptions import SpotifyException
-import pandas as pd
-import json
-import time
 import os
+import time
+import json
 import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-from dotenv import load_dotenv
-import K_means_code
 import torch as tc
+import pandas as pd
+from dotenv import load_dotenv
+from spotipy.oauth2 import SpotifyOAuth
 
 # load the environment variables    
 load_dotenv()
@@ -32,6 +30,10 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
 
 # load the dataset 
 def song_data(input_file = "dataset.csv", output_file = "audio_information.json"):
+
+    """
+    Imports the song data from the raw .csv file. Cleans the dataset and saves it to a .json file
+    """
 
     # load the dataset
     df = pd.read_csv(input_file, low_memory=False)
@@ -128,6 +130,8 @@ def song_data(input_file = "dataset.csv", output_file = "audio_information.json"
 
 # get the audio features
 def get_audio_features(num_tracks, features_file = "audio_information.json"):
+
+    """Saves audio features into a Pytorch Tensor"""
     
     features_json = song_data(output_file=features_file)
     
@@ -155,38 +159,13 @@ def get_audio_features(num_tracks, features_file = "audio_information.json"):
 
     return features_tensor
 
-def sample_audio_features(num_tracks=130291, features_file = "audio_information.json"):
-    
-    features_json = song_data(output_file=features_file)
-    
-    # initialize tensor to store song data
-    features_tensor = tc.zeros(num_tracks, 6)   # change the second dimension for the number of features
-
-    # extract the song information from the .json file
-    for index in range(num_tracks):
-        features = features_json[index]
-        features_tensor[index, 0] = features["acousticness"]
-        features_tensor[index, 1] = features['energy']
-        features_tensor[index, 2] = features['instrumentalness']
-        features_tensor[index, 3] = features['danceability']
-        features_tensor[index, 4] = features['loudness']
-        features_tensor[index, 5] = features['valence']
-
-        # if testing a sample size, use num_tracks to break the loop
-        if index == (num_tracks-1):
-            break
-    
-    # get rid of rows with nan values
-    nan_mask = ~tc.isnan(features_tensor).any(dim=1)
-    features_tensor = features_tensor[nan_mask]
-
-    return features_tensor
-
 #-------------------------------------------------------------------------------------
 
 # use the API to get the genre of every artist in the dataset
 # number of songs is 130291
 def get_genre(num_tracks, song_dataset="audio_information.json"):
+
+    """Retrieves genre information of each artist of a song in the dataset. Saves them to the .json file containing song information."""
 
     try:
         with open(song_dataset, 'r') as file: 
@@ -242,6 +221,8 @@ def get_genre(num_tracks, song_dataset="audio_information.json"):
 # delete the songs with no genre information
 def delete_bad_songs(num_tracks=130291, song_dataset = "audio_information.json"):
 
+    """Deletes songs from the .json file that have no genre information."""
+
     with open(song_dataset, 'r') as file:   
         songs = json.load(file)
     
@@ -257,6 +238,7 @@ def delete_bad_songs(num_tracks=130291, song_dataset = "audio_information.json")
 
     print(f"Deleted {deleted} songs.")
     print(f"There are {num_tracks - deleted} songs in the dataset")
+    print(len(good_songs))
 
 #-------------------------------------------------------------------------------------
 
