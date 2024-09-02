@@ -50,7 +50,7 @@ def k_means(k, tensor_of_features):
 
     # implement k-means++
     # choose a random data point as initial centroid
-    random.seed(142)
+    #random.seed(142)
     initial_centroid = tensor_of_features[random.randint(0, tensor_of_features.size(0)-1)]
     centroids[0] = initial_centroid
 
@@ -249,29 +249,35 @@ def spider_plot(k, tensor_of_features):
     plt.show()
 
 
-    """ 
-    Cluster 1: 
-        - Highest features: Valence, Danceability, Energy, Loudness
-        - Lowest Features: Acousticness, Instrumentalness
+""" 
+Cluster 1: 
+    - Highest features: Valence, Danceability, Energy, Loudness
+    - Lowest Features: Acousticness, Instrumentalness
 
-    Cluster 2: 
-        - Highest features: Acousticness, Instrumentalness, Danceability 
-        - Lowest Features: Energy, Valence
+Cluster 2: 
+    - Highest features: Acousticness, Instrumentalness, Danceability 
+    - Lowest Features: Energy, Valence
 
-    Cluster 3: 
-        - Highest features: Instrumentalness, Energy, Loudness
-        - Lowest Features: Acousticness, Valence, Danceability
+Cluster 3: 
+    - Highest features: Instrumentalness, Energy, Loudness
+    - Lowest Features: Acousticness, Valence, Danceability
         
-    Cluster 4: 
-        - Highest features: Acousticness, Instrumentalness
-        - Lowest Features: Valence, Danceability, Energy, Loudness
-    """
+Cluster 4: 
+    - Highest features: Acousticness, Instrumentalness
+    - Lowest Features: Valence, Danceability, Energy, Loudness
+"""
 
 
 if __name__ == "__main__":  
-    example_features = Spotipy_code.get_audio_features()
-    spider_plot(4, example_features)
+    example_features = Spotipy_code.sample_audio_features()
     
+    for i in range(5):
+        centroids, example_features, labels = k_means(4, example_features)
+        print(labels[0:100])
+        print('')
+        print(labels[0], labels[2], labels[7])
+        print('')
+   
     
     
     

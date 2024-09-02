@@ -29,7 +29,7 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
 #----------------------------------------------------------------------------------------------------------------------------------
 
 # load the dataset 
-def song_data(input_file = "dataset.csv", output_file = "audio_information.json"):
+def song_data(input_file = "dataset.csv", output_file = "audio_information_2.json"):
 
     """
     Imports the song data from the raw .csv file. Cleans the dataset and saves it to a .json file
@@ -75,6 +75,7 @@ def song_data(input_file = "dataset.csv", output_file = "audio_information.json"
             valence = float(row['valence'])
             tempo = float(row['tempo'])
 
+            # ensure values are consistent within their specified ranges
             if (acousticness > 1 or acousticness < 0 or
                 danceability > 1 or danceability < 0 or
                 valence > 1 or valence < 0 or
@@ -87,6 +88,12 @@ def song_data(input_file = "dataset.csv", output_file = "audio_information.json"
                 errors+=1
                 continue
 
+            # ensure that songs are atleast one minute long
+            elif float(row['duration_ms']) < 60000.0:
+                errors+= 1
+                print(f'Skipping song number {i} as song is too short.')
+                continue
+            
             else:       
                 
                 track_info = {
@@ -116,7 +123,7 @@ def song_data(input_file = "dataset.csv", output_file = "audio_information.json"
             errors+=1
             continue
 
-    # Write JSON data to a file
+    # write JSON data to a file
     with open(output_file, 'w') as json_file:
         json.dump(json_content, json_file, indent=4)
 
@@ -184,10 +191,10 @@ def get_genre(num_tracks, song_dataset="audio_information.json"):
     batch_size = 50
     artist_ids = []
 
-    # Initialize API call counter
+    # initialize API call counter
     api_call_count = 0
 
-    # Process track IDs in batches
+    # process track IDs in batches
     for i in range(0, len(track_ids), batch_size):
         batch = track_ids[i:i + batch_size]
         track_data = sp.tracks(batch)
@@ -206,7 +213,7 @@ def get_genre(num_tracks, song_dataset="audio_information.json"):
         for artist in artist_info['artists']:
             genres.append(artist['genres'])
 
-    # Edit the dataset to have genres
+    # edit the dataset to have genres
     for genre_index, song_index in zip(range(end - start + 1), range(start, end+1, 1)):     
         song = songs[song_index]
         song['genre'] = genres[genre_index]           
@@ -219,20 +226,22 @@ def get_genre(num_tracks, song_dataset="audio_information.json"):
 
 #-------------------------------------------------------------------------------------
 # delete the songs with no genre information
-def delete_bad_songs(num_tracks=130291, song_dataset = "audio_information.json"):
+def delete_bad_songs(song_dataset = "audio_information.json"):
 
     """Deletes songs from the .json file that have no genre information."""
 
     with open(song_dataset, 'r') as file:   
         songs = json.load(file)
+
+    num_tracks = len(songs)
     
-    # Create a new list with songs that have genres
-    good_songs = [song for song in songs[:num_tracks] if len(song['genre']) > 0]
+    # create a new list with songs that have genres
+    good_songs = [song for song in songs if len(song['genre']) > 0] 
     
-    # Calculate the number of deleted songs
+    # calculate the number of deleted songs
     deleted = num_tracks - len(good_songs)
     
-    # Save the filtered dataset
+    # save the filtered dataset
     with open("no_bad_songs.json", 'w') as json_file:
         json.dump(good_songs, json_file, indent=4)
 
@@ -243,7 +252,7 @@ def delete_bad_songs(num_tracks=130291, song_dataset = "audio_information.json")
 #-------------------------------------------------------------------------------------
 
 if __name__ == "__main__":  
-    delete_bad_songs()
+    song_data()
     
 
     
