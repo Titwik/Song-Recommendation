@@ -37,13 +37,12 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
     print('')
     artist_name = input("Who is the artist of the song you like?\n")
     print('')
-    start = time.time()
     print('Processing. Please wait...')
         
     query = f"track:{song_name} artist:{artist_name}"
     results = sp.search(q=query, type='track', limit=1) 
 
-    if results:
+    try:
         track = results['tracks']['items'][0]
         track_id = track['id']
         track_uri = track['uri']
@@ -99,13 +98,13 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
 
         num_tracks = len(song_data)
 
-        tensor_of_features = Spotipy_code.get_audio_features(num_tracks, song_dataset)
+        tensor_of_features = Spotipy_code.get_audio_features(song_dataset)
 
         _, tensor_of_features, labels = K_means_code.k_means(4, tensor_of_features)
 
         #print('Song clustering complete!')
         print('Almost there...')
-        print('')
+        print('')   
 
         # keep track of indices of songs in the cluster
         indices_in_cluster = []
@@ -181,20 +180,30 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
                 print('')
             print("#------------------------------------------------------------------------")
             print('')
-            end = time.time()
-            print(f"{end - start} seconds")
             
         # delete the user-entered song from the dataset 
-        del song_data[-1]
-        with open(song_dataset, 'w') as json_file:
-            json.dump(song_data, json_file, indent=4)    
-            #print("Song removed from file\n")    
+        # if it exists in the dataset already. 
+        new_track_id = song_data[-1]['track_id']
+        del song_data[-1]       
+        for song in song_data:
+            if new_track_id == song['track_id']:
+                with open(song_dataset, 'w') as json_file:
+                    json.dump(song_data, json_file, indent=4)
+                #print("Song removed from file\n")
+                break
+
         
-    else:
+    except IndexError:
         print('No song or artist found. Please try again')
+
+#----------------------------------------------------------------------------------------------------------------------------------
+
+def meet_in_middle_songs(song_dataset = "no_bad_songs.json"):
+    
+    pass
+#----------------------------------------------------------------------------------------------------------------------------------
 
 
 if __name__ == "__main__":
     recommend_songs()
-
-        
+    
