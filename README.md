@@ -31,8 +31,8 @@ At this point, you should be able to open run `python Recommendation_system.py` 
 ## How It Works
 
 There are 3 main files that serve various purposes:
-### `Spotipy_code.py
-`
+### `Spotipy_code.py`
+
 `Spotipy_code.py` contains all the code pertaining to importing the dataset in its raw .csv file format, cleaning it, and appending the relevant data to the `audio_information.json`. Additionally, there is a function which uses the Spotipy WebAPI to retrieve genre information for each song's artist, and another function which filters out all the songs without genre information associated with it, saving the remainder in `no_bad_songs.json`.
 
 The final function of note saves all the (relevant) audio features into an $n \times m$ tensor, where $n$ is the number of songs, and $m$ is the number of features we analyze. 
