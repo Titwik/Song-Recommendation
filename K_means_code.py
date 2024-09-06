@@ -1,13 +1,8 @@
-import time
-import numpy as np
-from flask import Flask, session, redirect, url_for, request
-import torch as tc
-import matplotlib.pyplot as plt
 import random
-import Spotipy_code # custom module
-
-# load the dataset
-dataset = '/home/titwik/Projects/Spotify Project/song_dataset/data/mpd.slice.0-999.json'
+import numpy as np
+import torch as tc
+import Spotipy_code
+import matplotlib.pyplot as plt
 
 # define a function to normalize the audio features
 def normalize(tensor):
@@ -213,7 +208,7 @@ def spider_plot(k, tensor_of_features):
         clusters.append(cluster_points)
 
     # list the features we are analyzing
-    features = ['acousticness', 'energy', 'instrumentalness', 'danceability', 'loudness', 'valence']
+    features = ['energy', 'instrumentalness', 'loudness', 'valence', 'acousticness']
 
     # number of features we are analyzing
     num_vars = len(features)
@@ -234,7 +229,7 @@ def spider_plot(k, tensor_of_features):
 
         # compute the mean of each feature
         mean_values = np.mean(cluster.numpy(), axis=0)
-        mean_values = np.concatenate((mean_values, [mean_values[0]]))  # Complete the loop
+        mean_values = np.concatenate((mean_values, [mean_values[0]]))  # complete the loop
 
         # generate the plot
         ax.fill(angles, mean_values, color=colors[i], alpha=0.25)
@@ -249,34 +244,12 @@ def spider_plot(k, tensor_of_features):
     plt.show()
 
 
-""" 
-Cluster 1: 
-    - Highest features: Valence, Danceability, Energy, Loudness
-    - Lowest Features: Acousticness, Instrumentalness
-
-Cluster 2: 
-    - Highest features: Acousticness, Instrumentalness, Danceability 
-    - Lowest Features: Energy, Valence
-
-Cluster 3: 
-    - Highest features: Instrumentalness, Energy, Loudness
-    - Lowest Features: Acousticness, Valence, Danceability
-        
-Cluster 4: 
-    - Highest features: Acousticness, Instrumentalness
-    - Lowest Features: Valence, Danceability, Energy, Loudness
-"""
-
-
 if __name__ == "__main__":  
-    example_features = Spotipy_code.sample_audio_features()
+    example_features = Spotipy_code.get_audio_features(features_file="no_bad_songs.json")
     
-    for i in range(5):
-        centroids, example_features, labels = k_means(4, example_features)
-        print(labels[0:100])
-        print('')
-        print(labels[0], labels[2], labels[7])
-        print('')
+    spider_plot(5, example_features)
+
+    
    
     
     

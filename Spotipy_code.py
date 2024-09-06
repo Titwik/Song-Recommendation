@@ -1,5 +1,4 @@
 import os
-import time
 import json
 import spotipy
 import torch as tc
@@ -10,16 +9,13 @@ from spotipy.oauth2 import SpotifyOAuth
 # load the environment variables    
 load_dotenv()
 
-# load the dataset
-dataset = '/home/titwik/Projects/Spotify Project/song_dataset/data/mpd.slice.0-999.json'
-
 # set the client id, client secret, redirect_uri and scope for project
 client_id = os.getenv('client_id')
 client_secret = os.getenv('client_secret')
 redirect_uri = os.getenv('redirect_uri')
 scope = "user-library-read"
 
-# intialize the spotify client  
+# intialize the spotify client      
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
                                                client_secret=client_secret,
                                                redirect_uri=redirect_uri,
@@ -29,10 +25,10 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
 #----------------------------------------------------------------------------------------------------------------------------------
 
 # load the dataset 
-def song_data(input_file = "dataset.csv", output_file = "audio_information_2.json"):
+def song_data(input_file = "dataset.csv", output_file = "audio_information.json"):
 
     """
-    Imports the song data from the raw .csv file. Cleans the dataset and saves it to a .json file
+    Imports the raw song data from the .csv file. Cleans the dataset and saves it to a .json file
     """
 
     # load the dataset
