@@ -136,40 +136,36 @@ def song_data(input_file = "dataset.csv", output_file = "audio_information_2.jso
 #-------------------------------------------------------------------------------------
 
 # get the audio features
-def get_audio_features(num_tracks, features_file = "audio_information.json"):
+def get_audio_features(features_file = "audio_information.json"):
 
     """Saves audio features into a Pytorch Tensor"""
     
-    features_json = song_data(output_file=features_file)
+    songs = song_data(output_file=features_file)
+    num_tracks = len(songs)
     
     # initialize tensor to store song data
-    features_tensor = tc.zeros(num_tracks, 6)   # change the second dimension for the number of features
+    features_tensor = tc.zeros(num_tracks, 5)   # change the second dimension for the number of features
 
     # extract the song information from the .json file
     for index in range(num_tracks):
-        features = features_json[index]
-        features_tensor[index, 0] = features["acousticness"]
-        features_tensor[index, 1] = features['energy']
-        features_tensor[index, 2] = features['instrumentalness']
-        features_tensor[index, 3] = features['danceability']
-        features_tensor[index, 4] = features['loudness']
-        features_tensor[index, 5] = features['valence']
-        #features_tensor[index, 6] = features['speechiness']
-
-        # if testing a sample size, use num_tracks to break the loop
-        if index == (num_tracks-1):
-            break
+        song = songs[index]
+        features_tensor[index, 0] = song['energy'] 
+        features_tensor[index, 1] = song['instrumentalness']
+        features_tensor[index, 2] = song['loudness']
+        features_tensor[index, 3] = song['valence']
+        #features_tensor[index, 4] = song['tempo']
+        features_tensor[index, 4] = song["acousticness"] 
+        #features_tensor[index, 6] = song['speechiness']
     
     # get rid of rows with nan values
     nan_mask = ~tc.isnan(features_tensor).any(dim=1)
     features_tensor = features_tensor[nan_mask]
 
-    return features_tensor
+    return features_tensor  
 
 #-------------------------------------------------------------------------------------
 
 # use the API to get the genre of every artist in the dataset
-# number of songs is 130291
 def get_genre(num_tracks, song_dataset="audio_information.json"):
 
     """Retrieves genre information of each artist of a song in the dataset. Saves them to the .json file containing song information."""
@@ -252,7 +248,10 @@ def delete_bad_songs(song_dataset = "audio_information.json"):
 #-------------------------------------------------------------------------------------
 
 if __name__ == "__main__":  
-    song_data()
+    example_features = get_audio_features(features_file="no_bad_songs.json")
+    print(example_features[-1])
+    print(example_features[-1][0].item())
+
     
 
     

@@ -4,6 +4,7 @@ import json
 import random
 import difflib
 import spotipy
+import torch as tc
 import Spotipy_code
 import K_means_code
 from dotenv import load_dotenv
@@ -11,9 +12,6 @@ from spotipy.oauth2 import SpotifyOAuth
 
 # load the environment variables    
 load_dotenv()
-
-# load the dataset
-dataset = '/home/titwik/Projects/Spotify Project/song_dataset/data/mpd.slice.0-999.json'
 
 # set the client id, client secret, redirect_uri and scope for project
 client_id = os.getenv('client_id')
@@ -174,36 +172,36 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
                 name = recommendation['track_name']
                 artist = recommendation['artist_name']
                 track_id = recommendation['track_id']
-                print(f"Track name: {name}")
+                #genres = recommendation['genre']
+                print(f"Track Name: {name}")
                 print(f"Artist: {artist}")
-                print(f"Link to song: https://open.spotify.com/track/{track_id}")
+                #print(f'Genres: {genres}')
+                print(f"Link To Song: https://open.spotify.com/track/{track_id}")
                 print('')
             print("#------------------------------------------------------------------------")
             print('')
             
         # delete the user-entered song from the dataset 
-        # if it exists in the dataset already. 
-        new_track_id = song_data[-1]['track_id']
         del song_data[-1]       
-        for song in song_data:
-            if new_track_id == song['track_id']:
-                with open(song_dataset, 'w') as json_file:
-                    json.dump(song_data, json_file, indent=4)
-                #print("Song removed from file\n")
-                break
-
+        with open(song_dataset, 'w') as json_file:
+            json.dump(song_data, json_file, indent=4)
         
     except IndexError:
-        print('No song or artist found. Please try again')
-
-#----------------------------------------------------------------------------------------------------------------------------------
-
-def meet_in_middle_songs(song_dataset = "no_bad_songs.json"):
+        print('No song or artist found. Please try a different song.')
+        #del song_data[-1]       
+        #with open(song_dataset, 'w') as json_file:a
+        #    json.dump(song_data, json_file, indent=4)
     
-    pass
+
+
+    
+
 #----------------------------------------------------------------------------------------------------------------------------------
 
 
 if __name__ == "__main__":
     recommend_songs()
+
+
+    
     
