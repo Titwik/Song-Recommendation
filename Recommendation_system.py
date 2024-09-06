@@ -1,10 +1,8 @@
-import time
 import os
 import json
 import random
 import difflib
 import spotipy
-import torch as tc
 import Spotipy_code
 import K_means_code
 from dotenv import load_dotenv
@@ -23,10 +21,11 @@ scope = "user-library-read"
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
                                                client_secret=client_secret,
                                                redirect_uri=redirect_uri,
-                                               scope=scope))
+                                               scope=scope))        
 
-#----------------------------------------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------------------------------------
 
+# terminal version
 def recommend_songs(song_dataset = "no_bad_songs.json"):
 
     """Input a song and get a list of 5 song recommendations back, along with their spotify links"""
@@ -98,7 +97,7 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
 
         tensor_of_features = Spotipy_code.get_audio_features(song_dataset)
 
-        _, tensor_of_features, labels = K_means_code.k_means(4, tensor_of_features)
+        _, tensor_of_features, labels = K_means_code.k_means(5, tensor_of_features)
 
         #print('Song clustering complete!')
         print('Almost there...')
@@ -191,10 +190,6 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
         #del song_data[-1]       
         #with open(song_dataset, 'w') as json_file:a
         #    json.dump(song_data, json_file, indent=4)
-    
-
-
-    
 
 #----------------------------------------------------------------------------------------------------------------------------------
 
