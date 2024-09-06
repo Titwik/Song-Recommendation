@@ -25,7 +25,8 @@ Then, run the `Recommendation_system.py` file by entering `python Recommendation
 
 At this point, you should be able to open run `python Recommendation_system.py` in the terminal, and use the program!
 
-![[Pasted image 20240906151334.png]]
+![image](https://github.com/user-attachments/assets/25eaec15-f539-4d26-a2d7-eaf6ea8b02f9)
+
 
 ## How It Works
 
@@ -47,7 +48,8 @@ The features chosen for analysis are:
 
 `K_means_code.py` does all the heavy lifting when it comes to clustering the data. The tensor obtained from `Spotipy_code.py` is normalized and fed into the k-means algorithm. The elbow method is used to identify the ideal number of clusters. 
 
-![[elbow_method 1 1.png]]
+![image](https://github.com/user-attachments/assets/e54469a4-dd0a-4457-a79f-274ad6ef2754)
+
 
 The choice of $k=5$ clusters is intended to capture a diverse range of audio features, enabling the formation of clusters that represent a variety of musical characteristics.
 
