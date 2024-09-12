@@ -1,29 +1,39 @@
 # K-Means Song Recommendation Program
 
-In this project, I have created a K-Means clustering algorithm from scratch in order to create 5 clusters of songs with similar audio features, generated using the [Spotipy WebAPI](https://spotipy.readthedocs.io/en/2.24.0/). The dataset used comes from [this](https://www.kaggle.com/datasets/tomigelo/spotify-audio-features?resource=download) Kaggle dataset, which contains the audio features for approximately 130K songs. 
+In this project, I have created a K-Means clustering algorithm from scratch in order to create 5 clusters of songs with similar audio features, generated using the [Spotify WebAPI](https://spotipy.readthedocs.io/en/2.24.0/). The dataset used comes from [this](https://www.kaggle.com/datasets/tomigelo/spotify-audio-features?resource=download) Kaggle dataset, which contains the audio features for approximately 130K songs. 
 
 ## How To Run The Program
 
-First, clone this repository into a directory of your choice locally using by first navigating to your chosen directory using `cd path/to/your/directory`, and then cloning the repository using `git clone https://github.com/Titwik/Song-Recommendation.git`. You can then navigate to the repo using `cd Song-Recommendation`. 
+First, clone this repository into a directory of your choice locally using by first navigating to your chosen directory using `cd path/to/your/directory`, and then cloning the repository using 
+```
+git clone https://github.com/Titwik/Song-Recommendation.git
+```
+ You can then navigate to the repo using `cd Song-Recommendation`. 
 
 In order to use the program, there are two things to be done:
 1. You will need to download the required packages for the program
 2. You will need to get a few config details from the [Spotify for Developers](https://developer.spotify.com/) website.
 ### 1. Installing the required packages
 
-Begin by installing all the packages required to run the program by opening the terminal and running `pip install -r requirements.txt`. 
-
-Then, run the `Recommendation_system.py` file by entering `python Recommendation_system.py` in the terminal, where you'll be greeted with 
+Begin by installing all the packages required to run the program by opening the terminal and running 
+```
+pip install -r requirements.txt
+``` 
 
 ### 2. Get the Client ID, and Client Secret
 
-1. Navigate to the [Spotify for Developers](https://developer.spotify.com/) and log into your Spotify account. 
-2. Click on 'Create an app'
-3. Pick an ‘App name’ and ‘App description’ of your choice and mark the checkboxes.
-4. After creation, you see your ‘Client Id’ and you can click on 'View client secret' to unhide your 'Client secret'.
-5. Copy your Client ID and Client Secret, and paste them in the .env file at the appropriate entries (make sure it's pasted within the "speech marks").
+1. Navigate to the [Spotify for Developers](https://developer.spotify.com/) and log into your Spotify account.
+2. Go to your dashboard.
+3. Click on 'Create an app'
+4. Pick an ‘App name’ and ‘App description’ of your choice, set the 'redirect uri' as "http://localhost:5000/callback" and mark the 'Spotify WebAPI' checkbox.
+5. After creation, you see your ‘Client Id’ and you can click on 'View client secret' to unhide your 'Client secret'.
+6. Copy your Client ID and Client Secret, and paste them in the .env file at the appropriate entries (make sure it's pasted within the "speech marks").
 
-At this point, you should be able to open run `python Recommendation_system.py` in the terminal, and use the program!
+At this point, run 
+```
+python Recommendation_system.py
+```
+ in the terminal, and use the program!
 
 ![image](https://github.com/user-attachments/assets/25eaec15-f539-4d26-a2d7-eaf6ea8b02f9)
 
