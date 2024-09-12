@@ -1,6 +1,8 @@
 # K-Means Song Recommendation Program
 
-In this project, I have created a K-Means clustering algorithm from scratch in order to create 5 clusters of songs with similar audio features, generated using the [Spotify WebAPI](https://spotipy.readthedocs.io/en/2.24.0/). The dataset used comes from [this](https://www.kaggle.com/datasets/tomigelo/spotify-audio-features?resource=download) Kaggle dataset, which contains the audio features for approximately 130K songs. 
+In this project, I have created a K-Means clustering algorithm from scratch in order to recommend similar songs to the user. The audio features used for clustering is generated using the [Spotify WebAPI](https://spotipy.readthedocs.io/en/2.24.0/). 
+
+The dataset used comes from [this](https://www.kaggle.com/datasets/tomigelo/spotify-audio-features?resource=download) Kaggle dataset, which contains the audio features for approximately 130K songs. 
 
 ## How To Run The Program
 
