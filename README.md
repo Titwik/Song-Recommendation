@@ -29,7 +29,20 @@ pip install -r requirements.txt
 3. Click on 'Create an app'
 4. Pick an ‘App name’ and ‘App description’ of your choice, set the 'redirect uri' as "http://localhost:5000/callback" and mark the 'Spotify WebAPI' checkbox.
 5. After creation, you see your ‘Client Id’ and you can click on 'View client secret' to unhide your 'Client secret'.
-6. Copy your Client ID and Client Secret, and paste them in the .env file at the appropriate entries (make sure it's pasted within the "speech marks").
+6. Open the terminal and navigate to the repository
+7. Paste the following lines into the terminal:
+~~~
+touch .env
+nano .env
+~~~
+8. Paste the following into your .env file:
+```
+client_id = "YOUR CLIENT ID"
+client_secret = "YOUR CLIENT SECRET"
+redirect_uri = "http://localhost:5000/callback"
+```
+ 
+9. Copy your Client ID and Client Secret, and paste them in the .env file at the appropriate entries (make sure it's pasted within the "speech marks"). Save the file when done.
 
 At this point, run 
 ```
