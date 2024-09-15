@@ -25,7 +25,6 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
 
 #---------------------------------------------------------------------------------------------------------------------------------
 
-# terminal version
 def recommend_songs(song_dataset = "no_bad_songs.json"):
 
     """Input a song and get a list of 5 song recommendations back, along with their spotify links"""
@@ -187,9 +186,9 @@ def recommend_songs(song_dataset = "no_bad_songs.json"):
         
     except IndexError:
         print('No song or artist found. Please try a different song.')
-        #del song_data[-1]       
-        #with open(song_dataset, 'w') as json_file:a
-        #    json.dump(song_data, json_file, indent=4)
+        del song_data[-1]       
+        with open(song_dataset, 'w') as json_file:
+            json.dump(song_data, json_file, indent=4)
 
 #---------------------------------------------------------------------------------------------------------------------------------- 
 
